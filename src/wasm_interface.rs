@@ -25,7 +25,7 @@ impl WasmGame {
     pub fn get_fruit_buffer(&self) -> Vec<f32> {
         self.game.fruits
             .iter()
-            .flat_map(|f| [f.pos.x, f.pos.y, 0., 20.])
+            .flat_map(|f| [f.pos.x, f.pos.y, f.rot, f.r])
             .collect()
     }
 

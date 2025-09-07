@@ -25,13 +25,16 @@ async function run() {
             const rotation = buffer[i + 2];
             const radius = buffer[i + 3];
 
+            // #ffa500
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(rotation);
             ctx.beginPath();
             ctx.arc(0, 0, radius, 0, 2 * Math.PI);
-            ctx.fillStyle = "orange";
+            ctx.strokeStyle = "#0623a1";
+            ctx.fillStyle = "#0623a188";
             ctx.fill();
+            ctx.stroke();
             ctx.restore();
         }
 
