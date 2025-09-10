@@ -110,27 +110,33 @@ impl Fruit {
         if self.pos.x < self.r {
             let d_x = self.pos.x - self.last_pos.x;
             self.pos.x = self.r;
-            self.last_pos.x = self.pos.x + d_x;
+           self.last_pos.x = self.pos.x + d_x*0.6;
         }
         if self.pos.x > max_x - self.r {
             let d_x = self.pos.x - self.last_pos.x;
             self.pos.x = max_x - self.r;
-            self.last_pos.x = self.pos.x + d_x;
+           self.last_pos.x = self.pos.x + d_x*0.6;
         }
         if self.pos.y > max_y - self.r {
             let d_y = self.pos.y - self.last_pos.y;
             self.pos.y = max_y - self.r;
-            self.last_pos.y = self.pos.y + d_y;
+            self.last_pos.y = self.pos.y  /*+ d_y*/;
         }
     }
 
     fn resolve(&mut self, other: &mut Fruit) {
-        let rsum = self.r + other.r;
+        let rsum = self.r + other.r; 
         let dist = self.pos.dist(&other.pos);
-        if dist <= rsum {
-            let diff = rsum - dist;
-            let a1 =  diff * other.r / rsum.powi(2);
-            let a2 =  diff * self.r / rsum.powi(2);
+        if dist <= rsum { 
+            // diff: how much objs overlap
+            let diff = (rsum - dist) * 0.95;
+
+            // how much to move each obj, 
+            //   /dist so the (pos1 - pos2) vec is normalized (later when we multiply it)
+            let n = diff /  dist;
+            //   it could be (* .5) at the end, but: we want the smaller obj to 
+            let a1 =  n * other.r / rsum;
+            let a2 =  n * self.r / rsum;
 
             let d1 = (self.pos - other.pos) * a1;
             let d2 = (other.pos - self.pos) * a2;
@@ -151,10 +157,11 @@ impl Fruit {
 
 impl Sim for Fruit {
     fn step(&mut self, gravity: f32) {
-        let v = (self.pos - self.last_pos) * 0.9;
+        let v = (self.pos - self.last_pos) ;
 
         self.last_pos = self.pos;
-        self.pos += v + Point { x: 0., y: gravity };
+        self.pos.y += gravity;
+        self.pos += v;
     }
 }
 
