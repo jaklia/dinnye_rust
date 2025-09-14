@@ -5,6 +5,8 @@ pub use wasm_interface::WasmGame;
 //use wasm_bindgen::prelude::*;
 use std::ops;
 
+
+
 trait Sim {
     fn step(&mut self, gravity: f32) {}
 }
@@ -84,13 +86,12 @@ impl ops::MulAssign<f32> for Point {
 // A simple fruit struct (only one fruit for now)
 //#[wasm_bindgen]
 pub struct Fruit {
-    //x: f32,
-    //y: f32,
     pos: Point,
     last_pos: Point,
     rot: f32,
     r: f32,
     i: i8,
+    to_remove: bool,
 }
 
 //#[wasm_bindgen]
@@ -100,9 +101,10 @@ impl Fruit {
         Fruit {
             pos: Point { x, y },
             last_pos: Point { x, y },
-            rot: rot,
-            i: 0,
+            rot,
+            i,
             r: (i as f32 + 1.0).powf(1.234) * 3.2 * 1.414,
+            to_remove: false,
         }
     }
 
@@ -124,26 +126,41 @@ impl Fruit {
         }
     }
 
-    fn resolve(&mut self, other: &mut Fruit) {
+    fn resolve(&mut self, other: &mut Fruit) -> bool {
+        if self.to_remove == true || other.to_remove == true {
+            return false;
+        }
+
         let rsum = self.r + other.r; 
         let dist = self.pos.dist(&other.pos);
         if dist <= rsum { 
-            // diff: how much objs overlap
-            let diff = (rsum - dist) * 0.95;
+            if self.i == other.i {
+                self.pos += (other.pos - self.pos) * 0.5;
+                self.last_pos = self.pos;
+                self.i = (self.i + 1) % 11;
+                self.r = (self.i as f32 + 1.0).powf(1.234) * 3.2 * 1.414;
 
-            // how much to move each obj, 
-            //   /dist so the (pos1 - pos2) vec is normalized (later when we multiply it)
-            let n = diff /  dist;
-            //   it could be (* .5) at the end, but: we want the smaller obj to 
-            let a1 =  n * other.r / rsum;
-            let a2 =  n * self.r / rsum;
+                other.to_remove = true;
+                return true;
+            } else {
+                // diff: how much objs overlap
+                let diff = (rsum - dist);
 
-            let d1 = (self.pos - other.pos) * a1;
-            let d2 = (other.pos - self.pos) * a2;
+                // how much to move each obj, 
+                //   /dist so the (pos1 - pos2) vec is normalized (later when we multiply it)
+                let n = diff /  dist;
+                //   it could be (* .5) at the end, but: we want the smaller obj to 
+                let a1 =  n * other.r / rsum;
+                let a2 =  n * self.r / rsum;
 
-            self.pos += d1;
-            other.pos += d2;
+                let d1 = (self.pos - other.pos) * a1;
+                let d2 = (other.pos - self.pos) * a2;
+
+                self.pos += d1;
+                other.pos += d2;
+            }
         }
+        false
     }
 
     // pub fn x(&self) -> f32 {
@@ -199,7 +216,7 @@ impl Game {
     // }
 
     pub fn spawn_fruit(&mut self, x: f32, y: f32) {
-        self.fruits.push(Fruit::new(x, y, 0., 1));
+        self.fruits.push(Fruit::new(x, y, 0., 0));
     }
 }
 
@@ -217,6 +234,7 @@ impl Sim for Game {
 
         for _ in 0..8 {
             let n = self.fruits.len();
+
             for i in 0..n {
                 if i < n - 1 {
                     let smthing = self.fruits.split_at_mut(i + 1);
@@ -224,11 +242,13 @@ impl Sim for Game {
                     for j in i + 1..n {
                         if i != j {
                             //    smthing.0[i].resolve(&mut smthing.1[j-i]);
-                            smthing.0[i].resolve(&mut smthing.1[j - i - 1]);
+                            let merged = smthing.0[i].resolve(&mut smthing.1[j - i - 1]);
                         }
                     }
                 }
             }
+            // remove the ones that were merged
+            self.fruits.retain(|fruit| {fruit.to_remove == false});
 
             self.fruits.iter_mut().for_each(|fruit| {
                 fruit.constrain(400., 400.);
