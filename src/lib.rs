@@ -143,21 +143,13 @@ impl Fruit {
                 other.to_remove = true;
                 return true;
             } else {
-                // diff: how much objs overlap
-                let diff = (rsum - dist);
+                let overlap = (rsum - dist);
 
-                // how much to move each obj, 
-                //   /dist so the (pos1 - pos2) vec is normalized (later when we multiply it)
-                let n = diff /  dist;
-                //   it could be (* .5) at the end, but: we want the smaller obj to 
-                let a1 =  n * other.r / rsum;
-                let a2 =  n * self.r / rsum;
-
-                let d1 = (self.pos - other.pos) * a1;
-                let d2 = (other.pos - self.pos) * a2;
-
-                self.pos += d1;
-                other.pos += d2;
+                // axis determined by the two objs, normalized, because we just need the direction
+                let ax = (self.pos - other.pos) * (1. /  dist);
+                // move the objs (inverse?) proportional to their radius (so bigger obj moves less)
+                self.pos += ax * (overlap * other.r / rsum);
+                other.pos -= ax * (overlap * self.r / rsum);
             }
         }
         false
@@ -222,9 +214,13 @@ impl Game {
 
 impl Sim for Game {
     fn step(&mut self, gravity: f32) {
-        self.fruits.iter_mut().for_each(|fruit| {
+        // self.fruits.iter_mut().for_each(|fruit| {
+        //     fruit.step(gravity);
+        // });
+         for fruit in &mut self.fruits {
             fruit.step(gravity);
-        });
+        }
+
 
         // for mut f1 in &self.fruits {
         //     for mut f2 in &self.fruits {
@@ -257,8 +253,6 @@ impl Sim for Game {
 
         //  self.fruits.retain(|fruit|  {fruit.pos.y < 500.});
 
-        // for mut fruit in &self.fruits {
-        //     fruit.step(gravity);
-        // }
+       
     }
 }
